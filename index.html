@@ -504,15 +504,14 @@ function calcPeriodNets(periodMatches){
   CONFIG.players.forEach(p=>nets[p.id]=0);
   periodMatches.forEach(m=>{
     if(!m.ranks||!m.players)return;
-    const n=m.players.length;
+    const n=m.players.length, stage=m.stage||'regular', fee=getEntryFee(stage);
     m.ranks.forEach((pid,i)=>{
-      const g=grossForRank(i+1,n),nv=g-CONFIG.entryFee;
+      const g=grossForRank(i+1,n,stage),nv=g-fee;
       if(nets[pid]!==undefined)nets[pid]+=nv;
     });
-    // players who didn't play — not included, correct
-    // players who played but not ranked — shouldn't happen but guard:
+    // players who played but not ranked — guard:
     m.players.forEach(pid=>{
-      if(!m.ranks.includes(pid)&&nets[pid]!==undefined)nets[pid]-=CONFIG.entryFee;
+      if(!m.ranks.includes(pid)&&nets[pid]!==undefined)nets[pid]-=fee;
     });
   });
   return nets;
@@ -544,7 +543,7 @@ function rSettle(){
 
   // Period dates
   const firstDate=periodMatches[0].date, lastDate=periodMatches[periodMatches.length-1].date;
-  const periodPool=periodMatches.reduce((a,m)=>a+(m.players?m.players.length:0)*CONFIG.entryFee,0);
+  const periodPool=periodMatches.reduce((a,m)=>a+(m.players?m.players.length:0)*getEntryFee(m.stage),0);
 
   // Net positions
   const nets=calcPeriodNets(periodMatches);
@@ -573,7 +572,7 @@ function rSettle(){
     <div class="pm-id">M${m.id}</div>
     <div class="pm-name">${m.name||'Match '+m.id}</div>
     <div class="pm-date">${m.date}</div>
-    <div class="pm-pool">Pool ₹${(m.players?m.players.length:0)*CONFIG.entryFee}</div>
+    <div class="pm-pool">Pool ₹${(m.players?m.players.length:0)*getEntryFee(m.stage)}</div>
   </div>`).join('');
 
   // Transactions
@@ -677,7 +676,7 @@ async function doSettle(){
     fromDate:periodMatches[0].date,
     toDate:periodMatches[periodMatches.length-1].date,
     matchIds:periodMatches.map(m=>m.id),
-    totalPool:periodMatches.reduce((a,m)=>a+(m.players?m.players.length:0)*CONFIG.entryFee,0),
+    totalPool:periodMatches.reduce((a,m)=>a+(m.players?m.players.length:0)*getEntryFee(m.stage),0),
     transactions:txns,
   };
   try{
